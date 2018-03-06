@@ -49,6 +49,7 @@ class AudioRecorderManager extends ReactContextBaseJavaModule {
   private boolean meteringEnabled = false;
   private Timer timer;
   private int recorderSecondsElapsed;
+  private int timerIterations = 0;
 
 
   public AudioRecorderManager(ReactApplicationContext reactContext) {
@@ -219,14 +220,18 @@ class AudioRecorderManager extends ReactContextBaseJavaModule {
                 if (amplitude == 0) {
                     body.putInt("currentMetering", -160);//The first call - absolutely silence  
                 } else {
-                    //db = 20 * log10(peaks/ 32767); where 32767 - max value of amplitude in Android, peaks - current value
-                    body.putInt("currentMetering", (int) (20 * Math.log(((double) amplitude) / 32767d)));
+                    // https://stackoverflow.com/questions/10655703/what-does-androids-getmaxamplitude-function-for-the-mediarecorder-actually-gi
+                    body.putInt("currentMetering", (int) (20 * Math.log10(((double) amplitude) / 51805.5336)));
                 }
         }
         sendEvent("recordingProgress", body);
-        recorderSecondsElapsed++;
+        timerIterations ++;
+        if(timerIterations % 4 == 0) {
+          // update seconds every forth iteration
+          recorderSecondsElapsed++;
+        }
       }
-    }, 0, 1000);
+    }, 0, 250);
   }
 
   private void stopTimer(){
